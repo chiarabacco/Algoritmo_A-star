@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A* su Urbino Centro Storico</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        html, body { 
+            margin: 0; 
+            padding: 0; 
+            width: 100%;
+            height: 100vh; 
+            font-family: 'Inter', sans-serif; 
+            background-color: #0b0f19; 
+            overflow: hidden;
+        }
+        
+        .window-wrapper {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        #sidebar { 
+            width: 300px; 
+            min-width: 300px;
+            max-width: 300px;
+            height: 100%;
+            padding: 20px; 
+            background: #111827; 
+            color: white; 
+            box-shadow: 4px 0 15px rgba(0,0,0,0.7); 
+            z-index: 2000; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+            box-sizing: border-box;
+            border-right: 1px solid #1e293b;
+        }
+
+        #map { 
+            flex-grow: 1; 
+            height: 100%; 
+            background: #0b0f19; 
+            z-index: 1;
+        }
+
+        h3 { margin-top: 0; color: #fbbf24; font-size: 22px; font-weight: 800;} 
+        p { line-height: 1.5; color: #94a3b8; font-size: 14px;}
+        strong { color: #f8fafc; }
+        .btn { background: #fbbf24; color: #0b0f19; border: none; padding: 12px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; border-radius: 4px; font-size: 14px; transition: background 0.2s; }
+        .btn:hover { background: #f59e0b; }
+        .info { background: #1e293b; padding: 15px; margin-top: 15px; border-radius: 4px; font-size: 15px; border-left: 4px solid #fbbf24; }
+        #dist-val { color: #fbbf24; font-weight: bold; font-size: 18px; }
+
+        .leaflet-tooltip {
+            background-color: #111827 !important;
+            color: #fbbf24 !important;
+            border: 1px solid #fbbf24 !important;
+            border-radius: 4px;
+            font-weight: bold;
+            padding: 6px 10px;
+        }
+        
+        .legenda { margin-top: 15px; }
+        .leg-item { display: flex; align-items: center; margin-bottom: 5px; font-size: 13px; color: #cbd5e1; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="window-wrapper">
+        <div id="sidebar">
+            <div>
+                <h3>A* Urbino Costi</h3>
+                <p><strong>Ispezione Grafo Attiva:</strong></p>
+                <p>Clicca su un nodo per impostare la <strong>Partenza</strong> e su un altro per l'<strong>Arrivo</strong>. L'algoritmo calcolerà il percorso esplorando i nodi intermedi.</p>
+                
+                <div class="legenda">
+                    <div class="leg-item"><span class="dot" style="background:#4ade80;"></span> Partenza</div>
+                    <div class="leg-item"><span class="dot" style="background:#f87171;"></span> Arrivo</div>
+                    <div class="leg-item"><span class="dot" style="background:#fbbf24;"></span> Percorso Finale</div>
+                    <div class="leg-item"><span class="dot" style="background:#60a5fa;"></span> Esplorati (Closed List)</div>
+                    <div class="leg-item"><span class="dot" style="background:#c084fc;"></span> In Coda (Open List)</div>
+                </div>
+
+                <div class="info">
+                    Distanza calcolata:<br>
+                    <span id="dist-val">-</span> metri
+                </div>
+            </div>
+            <button class="btn" onclick="resetPercorso()">Reset Simulazione</button>
+        </div>
+
+        <div id="map"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Inizializzazione Mappa (Dark Theme)
+        const map = L.map('map', {
+            zoomControl: false // Spostiamo i controlli a destra per non coprire
+        }).setView([43.7253, 12.6366], 16);
+        
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
+        let graphData = { nodes: {}, edges: [] };
+        let adjacencyList = {};
+        
+        let nodeMarkers = {};
+        let edgePolylines = {};
+        let searchVisuals = []; // Per tenere traccia dei nodi colorati durante la ricerca e rimuoverli al reset
+        
+        let startNodeId = null;
+        let targetNodeId = null;
+        let animationActive = false;
+
+        // Costanti di stile
+        const COLOR_DEFAULT = '#475569';
+        const COLOR_EDGE = '#1e293b';
+        const COLOR_START = '#4ade80';
+        const COLOR_TARGET = '#f87171';
+        const COLOR_PATH = '#fbbf24';
+        const COLOR_OPEN = '#c084fc';
+        const COLOR_CLOSED = '#60a5fa';
+
+        // Calcola Distanza di Haversine (in metri)
+        function calcDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Raggio della terra in metri
+            const φ1 = lat1 * Math.PI/180;
+            const φ2 = lat2 * Math.PI/180;
+            const Δφ = (lat2-lat1) * Math.PI/180;
+            const Δλ = (lon2-lon1) * Math.PI/180;
+
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+            return R * c;
+        }
+
+        // Caricamento Dati
+        fetch('mappa_urbino.json')
+            .then(res => res.json())
+            .then(data => {
+                graphData = data;
+                buildAdjacencyList();
+                renderGraph();
+            });
+
+        function buildAdjacencyList() {
+            adjacencyList = {};
+            for (let id in graphData.nodes) {
+                adjacencyList[id] = [];
+            }
+            graphData.edges.forEach(edge => {
+                if (adjacencyList[edge.from] && adjacencyList[edge.to]) {
+                    adjacencyList[edge.from].push({ target: edge.to, cost: edge.distance });
+                    // Assumiamo grafo non orientato per le strade pedonali
+                    adjacencyList[edge.to].push({ target: edge.from, cost: edge.distance });
+                }
+            });
+        }
+
+        function renderGraph() {
+            // Disegna Archi
+            graphData.edges.forEach(edge => {
+                const p1 = graphData.nodes[edge.from];
+                const p2 = graphData.nodes[edge.to];
+                if (p1 && p2) {
+                    const line = L.polyline([[p1.lat, p1.lng], [p2.lat, p2.lng]], {
+                        color: COLOR_EDGE,
+                        weight: 2,
+                        opacity: 0.6,
+                        interactive: false
+                    }).addTo(map);
+                    edgePolylines[`${edge.from}-${edge.to}`] = line;
+                    edgePolylines[`${edge.to}-${edge.from}`] = line;
+                }
+            });
+
+            // Disegna Nodi
+            for (let id in graphData.nodes) {
+                const node = graphData.nodes[id];
+                const circle = L.circleMarker([node.lat, node.lng], {
+                    radius: 4,
+                    fillColor: COLOR_DEFAULT,
+                    color: '#000',
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map);
+
+                circle.on('click', () => onNodeClick(id));
+                circle.bindTooltip(`Nodo: ${id}`, {direction: 'top'});
+                nodeMarkers[id] = circle;
+            }
+        }
+
+        function onNodeClick(id) {
+            if (animationActive) return;
+
+            if (!startNodeId) {
+                startNodeId = id;
+                nodeMarkers[id].setStyle({ fillColor: COLOR_START, radius: 6 });
+            } else if (!targetNodeId && id !== startNodeId) {
+                targetNodeId = id;
+                nodeMarkers[id].setStyle({ fillColor: COLOR_TARGET, radius: 6 });
+                runAStar(startNodeId, targetNodeId);
+            }
+        }
+
+        function resetPercorso() {
+            animationActive = false;
+            startNodeId = null;
+            targetNodeId = null;
+            document.getElementById('dist-val').innerText = '-';
+
+            // Ripristina stili Nodi
+            for (let id in nodeMarkers) {
+                nodeMarkers[id].setStyle({ fillColor: COLOR_DEFAULT, radius: 4 });
+            }
+            
+            // Ripristina stili Archi
+            for (let key in edgePolylines) {
+                edgePolylines[key].setStyle({ color: COLOR_EDGE, weight: 2, opacity: 0.6 });
+            }
+            
+            // Rimuove visualizzazioni temporanee
+            searchVisuals.forEach(v => map.removeLayer(v));
+            searchVisuals = [];
+        }
+
+        // Funzione asincrona per animare la ricerca
+        async function runAStar(start, target) {
+            animationActive = true;
+            
+            let openSet = [start];
+            let cameFrom = {};
+            
+            let gScore = {};
+            let fScore = {};
+            
+            for (let id in graphData.nodes) {
+                gScore[id] = Infinity;
+                fScore[id] = Infinity;
+            }
+            
+            gScore[start] = 0;
+            const targetNode = graphData.nodes[target];
+            fScore[start] = calcDistance(graphData.nodes[start].lat, graphData.nodes[start].lng, targetNode.lat, targetNode.lng);
+            
+            let currentPathLines = {}; // Mantiene i riferimenti agli archi disegnati durante la ricerca
+            
+            while (openSet.length > 0) {
+                if (!animationActive) return; // Interrotta dal reset
+
+                // Trova nodo con fScore minimo
+                let minIndex = 0;
+                for (let i = 1; i < openSet.length; i++) {
+                    if (fScore[openSet[i]] < fScore[openSet[minIndex]]) {
+                        minIndex = i;
+                    }
+                }
+                
+                let current = openSet[minIndex];
+                
+                if (current === target) {
+                    await reconstructPath(cameFrom, current);
+                    animationActive = false;
+                    return;
+                }
+                
+                openSet.splice(minIndex, 1);
+                
+                // Colora il nodo esplorato (Closed)
+                if (current !== start) {
+                    nodeMarkers[current].setStyle({ fillColor: COLOR_CLOSED });
+                }
+
+                // Esplora vicini
+                for (let neighbor of adjacencyList[current]) {
+                    let tentative_gScore = gScore[current] + neighbor.cost;
+                    
+                    if (tentative_gScore < gScore[neighbor.target]) {
+                        cameFrom[neighbor.target] = current;
+                        gScore[neighbor.target] = tentative_gScore;
+                        
+                        let nNode = graphData.nodes[neighbor.target];
+                        fScore[neighbor.target] = tentative_gScore + calcDistance(nNode.lat, nNode.lng, targetNode.lat, targetNode.lng);
+                        
+                        if (!openSet.includes(neighbor.target)) {
+                            openSet.push(neighbor.target);
+                            if (neighbor.target !== target) {
+                                nodeMarkers[neighbor.target].setStyle({ fillColor: COLOR_OPEN });
+                            }
+                        }
+                    }
+                }
+
+                // Attendi un attimo per l'animazione
+                await new Promise(r => setTimeout(r, 10)); // 10ms delay per step
+            }
+            
+            // Se finisce il while senza trovare il target
+            alert("Percorso non trovato!");
+            animationActive = false;
+        }
+
+        async function reconstructPath(cameFrom, current) {
+            let totalPath = [current];
+            let totalCost = 0;
+            
+            while (cameFrom[current]) {
+                const prev = cameFrom[current];
+                // Trova costo dell'arco
+                const edgeCost = adjacencyList[prev].find(e => e.target === current).cost;
+                totalCost += edgeCost;
+                
+                current = prev;
+                totalPath.unshift(current);
+            }
+            
+            document.getElementById('dist-val').innerText = totalCost.toFixed(2);
+            
+            // Anima il disegno del percorso finale
+            for (let i = 0; i < totalPath.length - 1; i++) {
+                if (!animationActive) return; // se resettato
+
+                const p1 = graphData.nodes[totalPath[i]];
+                const p2 = graphData.nodes[totalPath[i+1]];
+                
+                const pathLine = L.polyline([[p1.lat, p1.lng], [p2.lat, p2.lng]], {
+                    color: COLOR_PATH,
+                    weight: 5,
+                    opacity: 1
+                }).addTo(map);
+                
+                searchVisuals.push(pathLine);
+                
+                // Evidenzia nodi del percorso
+                if (totalPath[i] !== startNodeId && totalPath[i] !== targetNodeId) {
+                    nodeMarkers[totalPath[i]].setStyle({ fillColor: COLOR_PATH, radius: 5 });
+                }
+                
+                await new Promise(r => setTimeout(r, 30)); // Delay per l'animazione finale
+            }
+        }
+    </script>
+</body>
+</html>

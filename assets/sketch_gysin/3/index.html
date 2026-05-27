@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>A* vs Dijkstra - Visualizer</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: transparent;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: flex-start;
+      min-height: auto;
+    }
+    #canvas-container canvas {
+      display: block;
+      width: 100% !important;
+      height: auto !important;
+      max-width: 750px;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    #btn-play {
+      margin-top: 15px;
+      background: #000000;
+      color: #ffffff;
+      border: 1px solid #000000;
+      padding: 10px 24px;
+      border-radius: 6px;
+      font-family: 'Inter', -apple-system, sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.15s ease;
+    }
+    #btn-play:hover {
+      background: #ffffff;
+      color: #000000;
+    }
+    #btn-play:active {
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <button id="btn-play">Avvia</button>
+  <script src="sketch.js?v=4"></script>
+</body>
+</html>
