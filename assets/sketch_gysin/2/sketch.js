@@ -1,292 +1,350 @@
-// =========================================================================
-// A* VS DIJKSTRA - TEXTBOOK MINIMALIST LARGE GRAPH (84 NODES)
-// =========================================================================
+let cols = 20;
+let rows = 10;
+let grid = new Array(cols);
+let openSet = [];
+let closedSet = [];
+let start;
+let end;
+let w, h;
+let path = [];
+let running = false;
+let done = false;
 
-let nodes = [], isPlaying = false, stepDelay = 6, dijkstraSolver, aStarSolver;
-let startNodeId = 10;  // Nodo A (Start) - Colonna 1, Riga 3
-let targetNodeId = 73; // Nodo B (Destination) - Colonna 10, Riga 3
-
-// Collegamenti interrotti (barriera centrale) per ostacolare il cammino diretto
-let rowsCount = 7;
-let blockedPairs = [
-  [4 * rowsCount + 2, 5 * rowsCount + 2], [4 * rowsCount + 3, 5 * rowsCount + 3], [4 * rowsCount + 4, 5 * rowsCount + 4],
-  [5 * rowsCount + 2, 6 * rowsCount + 2], [5 * rowsCount + 3, 6 * rowsCount + 3], [5 * rowsCount + 4, 6 * rowsCount + 4],
-  [6 * rowsCount + 2, 7 * rowsCount + 2], [6 * rowsCount + 3, 7 * rowsCount + 3], [6 * rowsCount + 4, 7 * rowsCount + 4],
-  
-  [4 * rowsCount + 2, 5 * rowsCount + 3], [4 * rowsCount + 3, 5 * rowsCount + 2],
-  [4 * rowsCount + 3, 5 * rowsCount + 4], [4 * rowsCount + 4, 5 * rowsCount + 3],
-  [5 * rowsCount + 2, 6 * rowsCount + 3], [5 * rowsCount + 3, 6 * rowsCount + 2],
-  [5 * rowsCount + 3, 6 * rowsCount + 4], [5 * rowsCount + 4, 6 * rowsCount + 3],
-  [6 * rowsCount + 2, 7 * rowsCount + 3], [6 * rowsCount + 3, 7 * rowsCount + 2],
-  [6 * rowsCount + 3, 7 * rowsCount + 4], [6 * rowsCount + 4, 7 * rowsCount + 3]
-];
+// Interaction states
+let draggingNode = null; // 'start', 'end', or null
+let drawingWallMode = null; // true (drawing walls), false (erasing walls), null
 
 function setup() {
-  createCanvas(1200, 500).parent('canvas-container');
-  randomSeed(42);
-  
-  // Generazione organica di 84 nodi (12 colonne x 7 righe)
-  let cols = 12, rows = 7;
-  for (let c = 0; c < cols; c++) {
-    for (let r = 0; r < rows; r++) {
-      let id = c * rows + r;
-      nodes.push({
-        id,
-        x: map(c, 0, cols - 1, 40, 560) + random(-6, 6),
-        y: map(r, 0, rows - 1, 90, 430) + random(-6, 6),
-        neighbors: []
-      });
+  let canvas = createCanvas(1000, 500);
+  canvas.parent('canvas-container');
+
+  w = width / cols;
+  h = height / rows;
+
+  for (let i = 0; i < cols; i++) {
+    grid[i] = new Array(rows);
+    for (let j = 0; j < rows; j++) {
+      grid[i][j] = new Cell(i, j);
     }
   }
-  
-  // Collegamento reticolare (orizzontale, verticale, diagonale)
-  for (let c = 0; c < cols; c++) {
-    for (let r = 0; r < rows; r++) {
-      let id = c * rows + r, n = nodes[id];
-      if (c < cols - 1) n.neighbors.push((c + 1) * rows + r);
-      if (r < rows - 1) n.neighbors.push(c * rows + (r + 1));
-      if (c < cols - 1 && r < rows - 1) n.neighbors.push((c + 1) * rows + (r + 1));
-      if (c < cols - 1 && r > 0) n.neighbors.push((c + 1) * rows + (r - 1));
+
+  for (let i = 0; i < cols; i++) {
+    for (let j = 0; j < rows; j++) {
+      grid[i][j].addNeighbors(grid);
     }
   }
-  
-  // Gestione dell'evento tastiera 'D' (ascoltato sia nell'iframe che nella finestra principale)
-  window.addEventListener("keydown", handleKeyboardTrigger);
-  try {
-    if (window.parent) {
-      window.parent.addEventListener("keydown", handleKeyboardTrigger);
-    }
-  } catch (e) {
-    // Ignora errori di cross-origin
-  }
-  
-  // Collegamento al pulsante HTML "Avvia"
-  let btn = document.getElementById('btn-play');
-  if (btn) {
-    btn.addEventListener('click', () => {
-      resetSolvers();
-      isPlaying = true;
-    });
-  }
-  
-  resetSolvers();
+
+  start = grid[3][4];
+  end = grid[7][5];
+
+  // Buttons
+  document.getElementById('btn-play').addEventListener('click', startAlgorithm);
+  document.getElementById('btn-reset').addEventListener('click', resetPath);
+  document.getElementById('btn-clear').addEventListener('click', clearAll);
 }
 
-function handleKeyboardTrigger(e) {
-  if (e.key === 'd' || e.key === 'D') {
-    resetSolvers();
-    isPlaying = true;
+function startAlgorithm() {
+  if (running || done) return;
+  openSet = [];
+  closedSet = [];
+  path = [];
+  openSet.push(start);
+  running = true;
+  done = false;
+  
+  // Reset previous scores
+  for (let i = 0; i < cols; i++) {
+    for (let j = 0; j < rows; j++) {
+      grid[i][j].f = 0;
+      grid[i][j].g = 0;
+      grid[i][j].h = 0;
+      grid[i][j].previous = undefined;
+    }
   }
 }
 
-function resetSolvers() {
-  dijkstraSolver = new PathSolver(nodes, startNodeId, targetNodeId, false);
-  aStarSolver = new PathSolver(nodes, startNodeId, targetNodeId, true);
-  isPlaying = false;
+function resetPath() {
+  running = false;
+  done = false;
+  openSet = [];
+  closedSet = [];
+  path = [];
+  for (let i = 0; i < cols; i++) {
+    for (let j = 0; j < rows; j++) {
+      grid[i][j].f = 0;
+      grid[i][j].g = 0;
+      grid[i][j].h = 0;
+      grid[i][j].previous = undefined;
+    }
+  }
 }
 
-function stepSolvers() {
-  if (!dijkstraSolver.finished) dijkstraSolver.step();
-  if (!aStarSolver.finished) aStarSolver.step();
-  return !dijkstraSolver.finished || !aStarSolver.finished;
+function clearAll() {
+  resetPath();
+  for (let i = 0; i < cols; i++) {
+    for (let j = 0; j < rows; j++) {
+      grid[i][j].wall = false;
+    }
+  }
 }
 
 function draw() {
-  background(255); // Sfondo bianco pulitissimo
-  
-  // Avanzamento calcolo contemporaneo
-  if (isPlaying && frameCount % stepDelay === 0) {
-    let active = stepSolvers();
-    if (!active) isPlaying = false;
-  }
-  
-  // Linea di divisione centrale semplice e pulita
-  stroke(241, 245, 249); strokeWeight(2);
-  line(width/2, 0, width/2, height);
-  
-  // Rendering dei grafi side-by-side
-  push(); drawGraph(dijkstraSolver, false); pop();
-  push(); translate(width/2, 0); drawGraph(aStarSolver, true); pop();
-  
-  // Barra di testo superiore
-  drawTopBar();
-}
+  background(255);
 
-function drawTopBar() {
-  // Sfondo barra di testo bianco con bordo nero
-  fill(255);
-  stroke(0);
-  strokeWeight(1);
-  rect(-1, -1, width + 2, 55);
-  
-  // Linea di divisione al centro
-  line(width/2, 0, width/2, 55);
-  
-  // Testo Dijkstra (Sinistra)
-  noStroke(); fill(0); textSize(14); textAlign(LEFT, CENTER); textStyle(BOLD);
-  text("Algoritmo DIJKSTRA", 30, 27);
-  
-  textStyle(NORMAL); fill(100);
-  text("(Senza Euristica)", 195, 27);
-  
-  textStyle(BOLD); fill(34, 197, 94); // Verde per i nodi esplorati
-  text("Nodi Esaminati: " + dijkstraSolver.exploredCount, 385, 27);
-  
-  // Testo A* (Destra)
-  fill(0);
-  text("Algoritmo A*", width/2 + 30, 27);
-  
-  textStyle(NORMAL); fill(100);
-  text("(Con Euristica H)", width/2 + 130, 27);
-  
-  textStyle(BOLD); fill(34, 197, 94); // Verde per i nodi esplorati
-  text("Nodi Esaminati: " + aStarSolver.exploredCount, width/2 + 385, 27);
-}
-
-function drawGraph(solver, isAStar) {
-  // 1. DISEGNO ARCHI (Semplici linee nere sottili come da immagine)
-  stroke(0); strokeWeight(0.5);
-  for (let n of nodes) {
-    for (let nid of n.neighbors) {
-      if (n.id < nid) {
-        if (!isEdgeBlocked(n.id, nid)) {
-          // Disegna solo archi attivi
-          line(n.x, n.y, nodes[nid].x, nodes[nid].y);
+  if (running && frameCount % 3 === 0) { // Velocità animazione
+    if (openSet.length > 0) {
+      let winner = 0;
+      for (let i = 0; i < openSet.length; i++) {
+        if (openSet[i].f < openSet[winner].f) {
+          winner = i;
         }
       }
+
+      var current = openSet[winner];
+
+      if (current === end) {
+        running = false;
+        done = true;
+      }
+
+      removeFromArray(openSet, current);
+      closedSet.push(current);
+
+      let neighbors = current.neighbors;
+      for (let i = 0; i < neighbors.length; i++) {
+        let neighbor = neighbors[i];
+
+        if (!closedSet.includes(neighbor) && !neighbor.wall) {
+          // Il costo è 1 per movimenti orizzontali/verticali, e sqrt(2) per diagonali
+          let moveCost = dist(current.i, current.j, neighbor.i, neighbor.j);
+          let tempG = current.g + moveCost;
+
+          let newPath = false;
+          if (openSet.includes(neighbor)) {
+            if (tempG < neighbor.g) {
+              neighbor.g = tempG;
+              newPath = true;
+            }
+          } else {
+            neighbor.g = tempG;
+            newPath = true;
+            openSet.push(neighbor);
+          }
+
+          if (newPath) {
+            neighbor.h = heuristic(neighbor, end);
+            neighbor.f = neighbor.g + neighbor.h;
+            neighbor.previous = current;
+          }
+        }
+      }
+    } else {
+      running = false;
+      done = true; // Nessuna soluzione
     }
   }
+
+  // Trova il percorso in tempo reale
+  path = [];
+  let temp = current;
+  if (done) {
+    temp = end;
+  }
+  if (temp) {
+    path.push(temp);
+    while (temp.previous) {
+      path.push(temp.previous);
+      temp = temp.previous;
+    }
+  }
+
+  // Disegna le celle
+  for (let i = 0; i < cols; i++) {
+    for (let j = 0; j < rows; j++) {
+      grid[i][j].show(color(255));
+    }
+  }
+
+  // Disegna Closed Set (Esplorati) in blu
+  for (let i = 0; i < closedSet.length; i++) {
+    closedSet[i].show(color('#9ca5f5')); // blu
+  }
+
+  // Disegna Open Set (Frontiera) in verde
+  for (let i = 0; i < openSet.length; i++) {
+    openSet[i].show(color('#86e4ab')); // verde menta
+  }
   
-  // 2. EVIDENZIAZIONE DEL PERCORSO OTTENUTO (Sotto ai cerchi dei nodi)
-  if (solver.pathFound) {
-    stroke(isAStar ? color(37, 99, 235) : color(79, 70, 229)); // Blu o Viola indaco
-    strokeWeight(4); strokeJoin(ROUND); noFill();
+  // Disegna il percorso SOLO quando la ricerca è conclusa
+  if (done && path.length > 0) {
+    noFill();
+    stroke('#fcae51'); // arancione
+    strokeWeight(6);
     beginShape();
-    solver.path.forEach(id => vertex(nodes[id].x, nodes[id].y));
+    for (let i = 0; i < path.length; i++) {
+      vertex(path[i].i * w + w / 2, path[i].j * h + h / 2);
+    }
     endShape();
-  }
-  
-  // 3. DISEGNO DEI NODI (Cerchi con bordo nero)
-  for (let n of nodes) {
-    let isStart = (n.id === startNodeId), isTarget = (n.id === targetNodeId);
-    let fillColor = color(255);
-    let strokeColor = color(0);
-    let sw = 1;
-    let size = 15; // Diametro compatto perfetto per la densità di 84 nodi
     
-    // Verde per i nodi calcolati
-    if (solver.closedSet.has(n.id) && !isStart && !isTarget) {
-      fillColor = color(220, 252, 231); // #dcfce7
-      strokeColor = color(34, 197, 94); // #22c55e
-      sw = 1.5;
-    }
-    // Arancione per i nodi presi in considerazione (frontiera)
-    else if (solver.openSet.includes(n.id) && !isStart && !isTarget) {
-      fillColor = color(254, 237, 222); // #ffedd5
-      strokeColor = color(249, 115, 22); // #f97316
-      sw = 1.5;
-    }
-    
-    // Evidenziazione nodo corrente in esame
-    if (solver.currentId === n.id && !isTarget && !solver.finished && solver.openSet.length > 0) {
-      strokeColor = color(0); sw = 2.5;
-    }
-    
-    // Stile speciale per Partenza e Arrivo
-    if (isStart) {
-      fillColor = color(239, 246, 255); // Blu chiarissimo
-      strokeColor = color(59, 130, 246);
-      sw = 2;
-      size = 20;
-    } else if (isTarget) {
-      fillColor = color(255, 241, 242); // Rosso chiarissimo
-      strokeColor = color(239, 68, 68);
-      sw = 2;
-      size = 20;
-    }
-    
-    // Disegna cerchio
-    fill(fillColor); stroke(strokeColor); strokeWeight(sw);
-    ellipse(n.x, n.y, size, size);
-    
-    // Lettera interna per A e B in nero
-    if (isStart || isTarget) {
-      noStroke(); fill(0); textSize(11); textStyle(BOLD); textAlign(CENTER, CENTER);
-      text(isStart ? "A" : "B", n.x, n.y + 0.5);
-    }
-    
-    // Etichette "Start" e "Destination"
-    if (isStart) {
-      textSize(11); textStyle(NORMAL); fill(100);
-      text("Start", n.x, n.y + 24);
-    } else if (isTarget) {
-      textSize(11); textStyle(NORMAL); fill(100);
-      text("Destination", n.x, n.y - 24);
-    }
-  }
-}
-
-function isEdgeBlocked(idA, idB) {
-  return blockedPairs.some(p => (p[0] === idA && p[1] === idB) || (p[0] === idB && p[1] === idA));
-}
-
-// =========================================================================
-// RISOLUTORE COMPATTO DI PERCORSI
-// =========================================================================
-class PathSolver {
-  constructor(nodes, startId, targetId, useHeuristic) {
-    this.nodes = nodes; this.startId = startId; this.targetId = targetId; this.useHeuristic = useHeuristic;
-    this.openSet = [startId]; this.closedSet = new Set(); this.cameFrom = {};
-    
-    this.gScore = Object.fromEntries(nodes.map(n => [n.id, Infinity]));
-    this.fScore = Object.fromEntries(nodes.map(n => [n.id, Infinity]));
-    this.gScore[startId] = 0;
-    this.fScore[startId] = this.heuristic(startId, targetId);
-    
-    this.finished = false; this.pathFound = false; this.path = [];
-    this.currentId = startId; this.exploredCount = 0;
-  }
-  
-  heuristic(a, b) {
-    return this.useHeuristic ? dist(this.nodes[a].x, this.nodes[a].y, this.nodes[b].x, this.nodes[b].y) : 0;
-  }
-  
-  step() {
-    if (this.finished) return;
-    if (this.openSet.length === 0) {
-      this.finished = true;
-      return;
-    }
-    
-    let currentId = this.openSet.reduce((minId, id) => this.fScore[id] < this.fScore[minId] ? id : minId, this.openSet[0]);
-    this.currentId = currentId;
-    
-    if (currentId === this.targetId) {
-      this.finished = this.pathFound = true;
-      this.path = [currentId];
-      while (currentId in this.cameFrom) {
-        currentId = this.cameFrom[currentId];
-        this.path.unshift(currentId);
-      }
-      return;
-    }
-    
-    this.openSet.splice(this.openSet.indexOf(currentId), 1);
-    this.closedSet.add(currentId);
-    this.exploredCount++;
-    
-    for (let nid of this.nodes[currentId].neighbors) {
-      if (this.closedSet.has(nid) || isEdgeBlocked(currentId, nid)) continue;
+    // Freccia sull'arrivo
+    if (path.length > 1) {
+      let lastNode = path[1];
+      let dx = end.i - lastNode.i;
+      let dy = end.j - lastNode.j;
+      let angle = atan2(dy, dx);
       
-      let tentative_g = this.gScore[currentId] + dist(this.nodes[currentId].x, this.nodes[currentId].y, this.nodes[nid].x, this.nodes[nid].y);
-      if (tentative_g < this.gScore[nid]) {
-        this.cameFrom[nid] = currentId;
-        this.gScore[nid] = tentative_g;
-        this.fScore[nid] = tentative_g + this.heuristic(nid, this.targetId);
-        if (!this.openSet.includes(nid)) {
-          this.openSet.push(nid);
-        }
-      }
+      push();
+      translate(end.i * w + w / 2, end.j * h + h / 2);
+      rotate(angle);
+      fill('#fcae51'); // arancione
+      noStroke();
+      triangle(-8, -10, 10, 0, -8, 10);
+      pop();
     }
   }
+
+  // Disegna Partenza e Arrivo
+  start.showSpecial("A", color('#fcae51')); // arancione
+  end.showSpecial("B", color('#fcae51')); // arancione
+  
+  // Griglia bordi (bordo esterno)
+  noFill();
+  stroke(255); // Bianco
+  strokeWeight(3);
+  rect(0, 0, width, height);
+}
+
+// ----------------- INTERAZIONI MOUSE -----------------
+
+function mousePressed() {
+  if (mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height) return;
+  if (running) return;
+
+  let i = floor(mouseX / w);
+  let j = floor(mouseY / h);
+  let clickedCell = grid[i][j];
+
+  if (clickedCell === start) {
+    draggingNode = 'start';
+  } else if (clickedCell === end) {
+    draggingNode = 'end';
+  } else {
+    // Inizia a disegnare o cancellare muri
+    drawingWallMode = !clickedCell.wall;
+    clickedCell.wall = drawingWallMode;
+    if(done) resetPath(); // se c'era un path, puliscilo visivamente
+  }
+}
+
+function mouseDragged() {
+  if (mouseX < 0 || mouseX >= width || mouseY < 0 || mouseY >= height) return;
+  if (running) return;
+
+  let i = floor(mouseX / w);
+  let j = floor(mouseY / h);
+  let hoveredCell = grid[i][j];
+
+  if (draggingNode === 'start') {
+    if (hoveredCell !== end && !hoveredCell.wall) {
+      start = hoveredCell;
+      if(done) resetPath();
+    }
+  } else if (draggingNode === 'end') {
+    if (hoveredCell !== start && !hoveredCell.wall) {
+      end = hoveredCell;
+      if(done) resetPath();
+    }
+  } else if (drawingWallMode !== null) {
+    if (hoveredCell !== start && hoveredCell !== end) {
+      hoveredCell.wall = drawingWallMode;
+      if(done) resetPath();
+    }
+  }
+}
+
+function mouseReleased() {
+  draggingNode = null;
+  drawingWallMode = null;
+}
+
+// -----------------------------------------------------
+
+function removeFromArray(arr, elt) {
+  for (let i = arr.length - 1; i >= 0; i--) {
+    if (arr[i] == elt) {
+      arr.splice(i, 1);
+    }
+  }
+}
+
+function heuristic(a, b) {
+  // Usa la distanza euclidea per permettere il movimento a 8 direzioni in modo naturale
+  return dist(a.i, a.j, b.i, b.j);
+}
+
+function Cell(i, j) {
+  this.i = i;
+  this.j = j;
+  this.f = 0;
+  this.g = 0;
+  this.h = 0;
+  this.neighbors = [];
+  this.previous = undefined;
+  this.wall = false;
+
+  this.show = function(col) {
+    if (this.wall) {
+      fill(30, 41, 59); // slate-800
+      noStroke();
+      rect(this.i * w + 1, this.j * h + 1, w - 1, h - 1);
+    } else if (col) {
+      fill(col);
+      noStroke();
+      rect(this.i * w + 1, this.j * h + 1, w - 1, h - 1);
+    }
+    
+    // Draw grid borders
+    stroke(0); // Nero puro come nell'immagine
+    strokeWeight(1);
+    noFill();
+    rect(this.i * w, this.j * h, w, h);
+  };
+  
+  this.showSpecial = function(label, col) {
+    fill(col);
+    noStroke();
+    rect(this.i * w + 1, this.j * h + 1, w - 1, h - 1);
+    
+    // Draw grid borders for special cells too to keep grid continuous
+    stroke(0);
+    strokeWeight(1);
+    noFill();
+    rect(this.i * w, this.j * h, w, h);
+    
+    fill(0);
+    noStroke();
+    textAlign(CENTER, CENTER);
+    textFont('Arial');
+    textSize(24);
+    textStyle(BOLD);
+    // Leggero offset verticale (+2) per l'allineamento ottico al centro del quadrato
+    text(label, this.i * w + w / 2, this.j * h + h / 2 + 2);
+  }
+
+  this.addNeighbors = function(grid) {
+    let i = this.i;
+    let j = this.j;
+    
+    // Movimenti ortogonali
+    if (i < cols - 1) this.neighbors.push(grid[i + 1][j]);
+    if (i > 0) this.neighbors.push(grid[i - 1][j]);
+    if (j < rows - 1) this.neighbors.push(grid[i][j + 1]);
+    if (j > 0) this.neighbors.push(grid[i][j - 1]);
+    
+    // Movimenti diagonali
+    if (i > 0 && j > 0) this.neighbors.push(grid[i - 1][j - 1]);
+    if (i < cols - 1 && j > 0) this.neighbors.push(grid[i + 1][j - 1]);
+    if (i > 0 && j < rows - 1) this.neighbors.push(grid[i - 1][j + 1]);
+    if (i < cols - 1 && j < rows - 1) this.neighbors.push(grid[i + 1][j + 1]);
+  };
 }

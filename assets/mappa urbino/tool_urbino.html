@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A* su Urbino Centro Storico - Costi del Grafo</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        html, body { 
+            margin: 0; 
+            padding: 0; 
+            width: 100%;
+            height: 100vh; 
+            font-family: sans-serif; 
+            background-color: #0b0f19; 
+            overflow: hidden;
+        }
+        
+        .window-wrapper {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        #sidebar { 
+            width: 300px; 
+            min-width: 300px;
+            max-width: 300px;
+            height: 100%;
+            padding: 20px; 
+            background: #111827; 
+            color: white; 
+            box-shadow: 4px 0 15px rgba(0,0,0,0.7); 
+            z-index: 2000; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+            box-sizing: border-box;
+            border-right: 1px solid #1e293b;
+        }
+
+        #map { 
+            flex-grow: 1; 
+            height: 100%; 
+            background: #0b0f19; 
+            z-index: 1;
+            cursor: pointer;
+        }
+
+        h3 { margin-top: 0; color: #fbbf24; font-size: 22px; } 
+        p { line-height: 1.5; color: #94a3b8; }
+        strong { color: #f8fafc; }
+        .btn { background: #fbbf24; color: #0b0f19; border: none; padding: 12px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; border-radius: 4px; font-size: 14px; transition: background 0.2s; }
+        .btn:hover { background: #f59e0b; }
+        .info { background: #1e293b; padding: 15px; margin-top: 15px; border-radius: 4px; font-size: 15px; border-left: 4px solid #fbbf24; }
+        #dist-val { color: #fbbf24; font-weight: bold; font-size: 18px; }
+
+        .leaflet-tooltip {
+            background-color: #111827 !important;
+            color: #fbbf24 !important;
+            border: 1px solid #fbbf24 !important;
+            border-radius: 4px;
+            font-weight: bold;
+            padding: 6px 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="window-wrapper">
+        <div id="sidebar">
+            <div>
+                <h3>A* Urbino Costi</h3>
+                <p><strong>Ispezione Grafo Attiva:</strong></p>
+                <p>⚪ I pallini grigi sono i <strong>Nodi</strong> (Incroci).</p>
+                <p>🔵 Le linee blu sono gli <strong>Archi</strong> (Strade).</p>
+                <p><i>Passa il mouse sopra nodi e archi per vedere ID e Costi geometrici correnti.</i></p>
+                
+                <div class="info">
+                    Distanza calcolata:<br>
+                    <span id="dist-val">-</span> metri
+                </div>
+            </div>
+            <button class="btn" onclick="resetPercorso()">Reset Simulazione</button>
+        </div>
+
+        <div id="map"></div>
+    </div>
+
+    <script src="

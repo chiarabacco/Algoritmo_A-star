@@ -22,30 +22,32 @@
 
 		<header>
 			<h1>algoritmo a-star</h1>
+			<p style="color: #475569; font-size: 1.2rem; font-weight: 500; margin-top: 5px;">Alice Marconi e Chiara Bacco</p>
 		</header>
 
 		<!-- --------------------------------------------------------------------- -->
 
 		<section class="filetto">
-			<h2 class="titolo-sezione">sezione 1<br><strong>cos'è?</strong></h2>
-			<div class="contenuto-sezione">
+			<h2 class="titolo-sezione"><strong>Cos'è?</strong></h2>
+			<div class="contenuto-sezione" style="display: flex; align-items: center; gap: 2em;">
 				<p>
 					L'algoritmo A* (detto A-star) è un algoritmo di ricerca e pathfinding, ovvero il processo
 					informatico che permette di determinare il percorso più efficiente tra due punti all'interno di una
 					rete (grafo) formata da un insieme di posizioni (nodi) e delle connessioni (archi) tra di loro.
 					Questo algoritmo è uno dei più utilizzati in informatica, robotica e videogiochi per trovare il
-					percorso tra un dato nodo iniziale e un dato nodo di arrivo. L’algoritmo A* è stato descritto nel
-					1968 da Peter Hart, Nils Nilsson, e Bertram Raphael e combina le caratteristiche dell’algoritmo di
-					Dijkstra e la ricerca best first, che analizzeremo successivamente; grazie all’utilizzo di una stima
+					percorso tra un dato nodo iniziale e un dato nodo di arrivo. L'algoritmo A* è stato descritto nel
+					1968 da Peter Hart, Nils Nilsson, e Bertram Raphael e combina le caratteristiche dell'algoritmo di
+					Dijkstra e la ricerca best first, che analizzeremo successivamente; grazie all'utilizzo di una stima
 					euristica, è celebre per la sua estrema efficienza.
 				</p>
+				<iframe scrolling="no" frameborder="0" height="300" style="display: block !important; min-width: 500px; width: 500px !important; flex-shrink: 0;" src="./assets/sketch_gysin/1/index.html"></iframe>
 			</div>
 		</section>
 
 		<!-- --------------------------------------------------------------------- -->
 
 		<section class="filetto">
-			<h2 class="titolo-sezione">sezione 2<br><strong>come funziona?</strong></h2>
+			<h2 class="titolo-sezione"><strong>Come funziona?</strong></h2>
 			<div class="contenuto-sezione">
 				<p>
 					Dato un punto di partenza e uno di arrivo, l’algoritmo A* sceglie a ogni passaggio il nodo più
@@ -68,14 +70,28 @@
 				</p>
 
 			</div>
-			<h3 class="titolo-sezione">diversi modi per calcolare h</h3>
+			<h3 class="titolo-sezione">Diversi modi per calcolare h</h3>
 			<div class="contenuto-sezione">
 
 
 
-				<img id="foto1" src="assets/img/es.1/frame1.png"
-					style="width: 40%; min-width: 500px; max-width: 100%; display: block; margin: 0 0 30px 0;">
-
+				<div style="display: flex; gap: 40px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 40px;">
+					<!-- Blocco Immagine -->
+					<div style="flex: 1; min-width: 500px; max-width: 600px;">
+						<img id="foto1" src="assets/img/es.1/frame1.png"
+							style="width: 100%; display: block; margin: 0 0 15px 0;">
+						<button class="btn-neutro" onclick="cambia1()" style="margin-bottom: 0;">Cambia Immagine</button>
+					</div>
+					
+					<!-- Testo Descrittivo -->
+					<div style="flex: 1; min-width: 300px; padding-top: 10px;">
+						<ul style="list-style-type: none; padding-left: 0; margin-top: 0;">
+							<li style="margin-bottom: 12px;"><strong>- Distanza Manhattan:</strong> per spostamenti in 4 direzioni</li>
+							<li style="margin-bottom: 12px;"><strong>- Distanza euclidea:</strong> per spostamenti in tutte le direzioni</li>
+							<li style="margin-bottom: 12px;"><strong>- Distanza diagonale/ottile:</strong> per spostamenti in 8 direzioni</li>
+						</ul>
+					</div>
+				</div>
 				<script>
 					const elencoFoto1 = [
 						"assets/img/es.1/frame1.png", "assets/img/es.1/frame2.png",
@@ -84,18 +100,26 @@
 					let indice1 = 0;
 
 					const cambia1 = () => {
+						let img = document.getElementById("foto1");
+						// Blocca le dimensioni per evitare che l'ultimo frame 'salti' se è tagliato diversamente
+						if (!img.style.height || img.style.height === "auto") {
+							img.style.height = img.clientHeight + "px";
+							img.style.width = img.clientWidth + "px";
+							img.style.objectFit = "fill"; // Forza l'immagine a riempire lo spazio
+						}
 						indice1 = (indice1 + 1) % elencoFoto1.length;
-						document.getElementById("foto1").src = elencoFoto1[indice1];
+						img.src = elencoFoto1[indice1];
 					};
 				</script>
 
 
 			</div>
-			<h3 class="titolo-sezione">esempio dell'algoritmo a* in funzione</h3>
+			<h3 class="titolo-sezione">Esempio dell'algoritmo A* in funzione su griglia 2D</h3>
 			<div class="contenuto-sezione">
 
 				<img id="foto2" src="assets/img/es.2/frame11.png"
-					style="width: 40%; min-width: 500px; max-width: 100%; display: block; margin: 0 0 30px 0;">
+					style="width: 100%; min-width: 500px; max-width: 600px; display: block; margin: 0 0 15px 0;">
+				<button class="btn-neutro" onclick="cambia2()">Cambia Immagine</button>
 
 				<script>
 					const elencoFoto2 = [
@@ -107,31 +131,20 @@
 					let indice2 = 0;
 
 					const cambia2 = () => {
+						let img = document.getElementById("foto2");
+						if (!img.style.height || img.style.height === "auto") {
+							img.style.height = img.clientHeight + "px";
+							img.style.width = img.clientWidth + "px";
+							img.style.objectFit = "fill";
+						}
 						indice2 = (indice2 + 1) % elencoFoto2.length;
-						document.getElementById("foto2").src = elencoFoto2[indice2];
+						img.src = elencoFoto2[indice2];
 					};
 
 
-					// ================= GESTORE DEI TASTI UNICO (Ascolta sia la pagina che gli iframe) =================
-					const ascoltaTastiera = (finestra) => {
-						finestra.addEventListener("keydown", e => {
-							if (e.key === "a" || e.key === "A") cambia1();
-							if (e.key === "c" || e.key === "C") cambia2();
-						});
-					};
-
-					// Attiva l'ascolto sulla pagina principale
-					ascoltaTastiera(window);
-
-					// Attiva l'ascolto dentro tutti gli iframe presenti nella pagina
-					window.addEventListener("load", () => {
-						document.querySelectorAll("iframe").forEach(f => {
-							try { ascoltaTastiera(f.contentWindow); } catch (errore) { }
-						});
-					});
 				</script>
 
-				<p style="margin-top: 20px; margin-bottom: 0;">
+			<p style="margin-top: 20px; margin-bottom: 30px;">
 					Ad ogni passaggio l’algoritmo sceglie il nodo con la F minore, quindi con il costo minore. I nodi
 					possibili da esplorare fanno parte di una lista open, quelli già analizzati fanno parte di una lista
 					closed. Nel caso in cui percorra un nodo e solo dopo si accorga che esisteva una strada più breve
@@ -139,12 +152,17 @@
 					raggiungerlo, l’algoritmo torna indietro e percorre la strada migliore.
 				</p>
 			</div>
+			
+			<h3 class="titolo-sezione">Costruisci e visualizza il percorso</h3>
+			<div class="contenuto-sezione">
+				<iframe scrolling=no frameborder=0 height=700 src="./assets/sketch_gysin/2/index.html"></iframe>
+			</div>
 		</section>
 
 		<!-- --------------------------------------------------------------------- -->
 
 		<section class="filetto">
-			<h2 class="titolo-sezione">sezione 3<br><strong>perchè è efficiente?</strong></h2>
+			<h2 class="titolo-sezione"><strong>Perché è così efficiente?</strong></h2>
 			<div class="contenuto-sezione">
 				<p>
 					Come già detto, l’algoritmo A* nasce dall’algoritmo di Dijkstra, un algoritmo di pathfinding. Anche
@@ -170,16 +188,29 @@
 				</p>
 
 			</div>
-			<h3 class="titolo-sezione">confronto tra dijkstra e a*</h3>
+			<h3 class="titolo-sezione">Euristica ammissibile</h3>
+			<div class="contenuto-sezione">
+				<p>L’euristica, affinchè garantisca di trovare il percorso più efficiente, deve essere ammissibile. Un’euristica è detta ammissibile se non sovrastima mai il costo reale minimo necessario per raggiungere il nodo goal, cioè fornisce sempre una stima ottimistica o al massimo esatta del costo rimanente. Questa proprietà garantisce che l’algoritmo A* trovi sempre una soluzione ottima, poiché non rischia di scartare percorsi che potrebbero essere i migliori.</p>
+				<p style="margin-top: 10px; margin-bottom: 20px; font-weight: bold; background-color: #f5f5f5; padding: 10px; border-left: 3px solid #000; display: inline-block;">
+					h(n) ≤ h∗(n)
+				</p>
+				<p>dove:</p>
+				<ul>
+					<li><strong>h(n)</strong> = valore stimato dall’euristica nel nodo n</li>
+					<li><strong>h∗(n)</strong> = vero costo minimo dal nodo n al goal</li>
+				</ul>
+			</div>
+			
+			<h3 class="titolo-sezione">Confronto tra Dijkstra e A*</h3>
 				<div class="contenuto-sezione">
-					<iframe scrolling=no frameborder=0 height=610 src="./assets/sketch_gysin/2/index.html?v=4"></iframe>
+					<iframe scrolling=no frameborder=0 height=610 src="./assets/sketch_gysin/3/index.html?v=4"></iframe>
 				</div>
 		</section>
 
 		<!-- --------------------------------------------------------------------- -->
 
 		<section class="filetto">
-			<h2 class="titolo-sezione">sezione 4<br><strong>vari tipi di costi</strong></h2>
+			<h2 class="titolo-sezione"><strong>Vari tipi di costi</strong></h2>
 			<div class="contenuto-sezione">
 				<p>
 					Finora abbiamo analizzato casi in cui il costo dipende dalla distanza percorsa, ma questo può essere definito con moltissimi altri criteri, inoltre potrebbe non essere uniforme il costo per muoversi da un nodo all’altro, ad esempio in una mappa in cui sono presenti diversi tipi di terreni con costi diversi (sentiero, fiume, montagna…) come in alcuni videogiochi.
@@ -188,26 +219,48 @@
 					In questo esempio viene considerato quanto costa muoversi da un nodo a un’altro piuttosto che la distanza percorsa, preferendo i nodi con costo di movimento minore, anche se non formano il percorso più breve possibile.
 				</p>
 			</div>
-			<h3 class="titolo-sezione">esempio variabile costo</h3>
+			<h3 class="titolo-sezione">Esempio costo di movimento variabile</h3>
 			<div class="contenuto-sezione">
-				<iframe scrolling=no frameborder=0 height=650 src="./assets/sketch_gysin/3/index.html?v=4"></iframe>
+				<iframe scrolling=no frameborder=0 height=570 src="./assets/sketch_gysin/4/index.html?v=4"></iframe>
 			</div>
 		</section>
 
 		<section class="filetto">
-			<h2 class="titolo-sezione">sezione 5<br><strong>mappa interattiva (urbino)</strong></h2>
+			<h2 class="titolo-sezione"><strong>Come funzionano le mappe digitali?</strong></h2>
 			<div class="contenuto-sezione">
 				<p>
-					In questo strumento interattivo puoi applicare l'algoritmo A* sulla mappa reale del centro storico di Urbino. Clicca su due punti per calcolare il percorso ottimale.
+					Altri strumenti che utilizzano questo algoritmo, e che considerano moltissimi tipi di costo, sono i sistemi di navigazione su mappe digitali.<br>
+					Un esempio di questo tipo di utilizzo è Google Maps, il quale non si limita a tracciare un itinerario basato sulla lunghezza del tragitto: l’algoritmo è molto più sofisticato e tiene conto di una serie di fattori che vanno ben oltre la semplice distanza chilometrica.Il sistema è capace di analizzare in tempo reale il traffico, le condizioni meteo e le abitudini di guida. Tuttavia, il percorso più veloce suggerito dall’app è spesso più lungo di quello che avresti immaginato. Non si tratta di un errore, ma di una strategia studiata nei minimi dettagli.<br>
+					Google Maps punta a ottimizzare il tempo di percorrenza piuttosto che ridurre al minimo la distanza. Questo significa che il sistema privilegia l’itinerario più veloce per arrivare a destinazione, basandosi su aggiornamenti in tempo reale. Questi aggiornamenti includono il monitoraggio del traffico, la presenza di incidenti, i lavori in corso e altri ostacoli che potrebbero rallentare il viaggio e non sempre il percorso più breve è il migliore.
+				</p>
+				<p>
+					Ciò che rende Google Maps ancora più interessante è la capacità di adattarsi alle abitudini di guida dell’utente. Se hai utilizzato regolarmente una determinata strada per raggiungere una destinazione, l’algoritmo potrebbe considerarla come opzione prioritaria.<br>
+					Come si può dedurre, buona parte del funzionamento di Google Maps si basa su una complessa rete di fonti di dati. Non solo analizza le informazioni fornite dagli utenti che condividono la loro posizione in tempo reale, ma utilizza anche dati provenienti da partner esterni, come compagnie di trasporto e autorità stradali. Questo flusso costante di informazioni consente all’algoritmo di aggiornare i percorsi suggeriti in pochi secondi, offrendo soluzioni sempre più accurate.<br>
+					Inoltre, l’app non considera solo la velocità e il traffico, ma tiene conto anche di elementi come il consumo di carburante e l’impatto ambientale.
 				</p>
 			</div>
-			<h3 class="titolo-sezione">esplora la mappa</h3>
+			<h3 class="titolo-sezione">Esplora la mappa di Urbino</h3>
 			<div class="contenuto-sezione">
-				<iframe scrolling=no frameborder=0 height=700 src="./assets/tool_urbino/tool_urbino.html"></iframe>
+				<iframe scrolling=no frameborder=0 height=700 style="width: 85%;" src="./assets/tool_urbino/tool_urbino.html"></iframe>
+				<div class="instructions" style="margin-top: 30px; margin-bottom: 50px; width: 85%;">Clicca su un nodo per impostare la <strong>Partenza</strong> e su un altro per l'<strong>Arrivo</strong>. L'algoritmo calcolerà il percorso esplorando i nodi intermedi.</div>
 			</div>
 		</section>
 
 		<!-- --------------------------------------------------------------------- -->
+
+		<section class="filetto">
+			<h2 class="titolo-sezione"><strong>Sitografia</strong></h2>
+			<div class="contenuto-sezione">
+				<ul>
+					<li><a href="https://it.wikipedia.org/wiki/Algoritmo_A*" target="_blank" style="color: #3b82f6;">https://it.wikipedia.org/wiki/Algoritmo_A*</a></li>
+					<li><a href="https://www.redblobgames.com/pathfinding/a-star/introduction.html" target="_blank" style="color: #3b82f6;">https://www.redblobgames.com/pathfinding/a-star/introduction.html</a></li>
+					<li><a href="https://www.geeksforgeeks.org/dsa/a-search-algorithm/" target="_blank" style="color: #3b82f6;">https://www.geeksforgeeks.org/dsa/a-search-algorithm/</a></li>
+					<li><a href="https://www.allaboutai.com/it-it/glossario-ai/algoritmo-ricerca-a-star/" target="_blank" style="color: #3b82f6;">https://www.allaboutai.com/it-it/glossario-ai/algoritmo-ricerca-a-star/</a></li>
+					<li><a href="https://derapate.allaguida.it/articolo/google-maps-altro-che-percorsi-piu-brevi-ecco-come-funziona-veramente-lalgoritmo/13700/" target="_blank" style="color: #3b82f6; word-wrap: break-word;">https://derapate.allaguida.it/articolo/google-maps-altro-che-percorsi-piu-brevi-ecco-come-funziona-veramente-lalgoritmo/13700/</a></li>
+					<li><a href="https://youtu.be/oIl6txmNt2A?si=I9Mx6HZnXeUQh_k6" target="_blank" style="color: #3b82f6;">https://youtu.be/oIl6txmNt2A?si=I9Mx6HZnXeUQh_k6</a></li>
+				</ul>
+			</div>
+		</section>
 
 	</main>
 </body>

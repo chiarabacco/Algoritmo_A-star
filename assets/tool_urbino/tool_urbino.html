@@ -14,23 +14,26 @@
             width: 100%;
             height: 100vh; 
             font-family: 'Inter', sans-serif; 
-            background-color: #0b0f19; 
+            background-color: #3b82f6; 
             overflow: hidden;
         }
         
         .window-wrapper {
-            display: flex;
+            position: relative;
             width: 100%;
             height: 100%;
         }
 
         #sidebar { 
+            position: absolute;
+            left: 0;
+            top: 0;
             width: 300px; 
             min-width: 300px;
             max-width: 300px;
             height: 100%;
             padding: 20px; 
-            background: #111827; 
+            background: rgba(30, 41, 59, 0.8); /* Blu scuro desaturato (#1e293b all'80%) */
             color: white; 
             box-shadow: 4px 0 15px rgba(0,0,0,0.7); 
             z-index: 2000; 
@@ -38,21 +41,47 @@
             flex-direction: column; 
             justify-content: space-between; 
             box-sizing: border-box;
-            border-right: 1px solid #1e293b;
+            backdrop-filter: blur(8px); /* Effetto vetro opaco elegante */
+            -webkit-backdrop-filter: blur(8px);
         }
 
         #map { 
-            flex-grow: 1; 
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%; 
             height: 100%; 
-            background: #0b0f19; 
+            background: #3b82f6; 
             z-index: 1;
         }
 
-        h3 { margin-top: 0; color: #fbbf24; font-size: 22px; font-weight: 800;} 
+        h3 { margin-top: 0; color: #ffffff; font-size: 22px; font-weight: 800;} 
         p { line-height: 1.5; color: #94a3b8; font-size: 14px;}
         strong { color: #f8fafc; }
-        .btn { background: #fbbf24; color: #0b0f19; border: none; padding: 12px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; border-radius: 4px; font-size: 14px; transition: background 0.2s; }
-        .btn:hover { background: #f59e0b; }
+        .btn {
+            background: #e5e5e5;
+            color: #404040;
+            border: 1px solid #404040;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-family: 'Inter', -apple-system, sans-serif;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.15s ease;
+            margin-top: 15px;
+            width: 100%;
+        }
+        .btn:hover {
+            background: #d4d4d4;
+            color: #262626;
+            border: 1px solid #262626;
+        }
+        .btn:active {
+            transform: scale(0.98);
+        }
         .info { background: #1e293b; padding: 15px; margin-top: 15px; border-radius: 4px; font-size: 15px; border-left: 4px solid #fbbf24; }
         #dist-val { color: #fbbf24; font-weight: bold; font-size: 18px; }
 
@@ -63,6 +92,10 @@
             border-radius: 4px;
             font-weight: bold;
             padding: 6px 10px;
+        }
+
+        .blue-map-filter {
+            filter: sepia(100%) hue-rotate(190deg) saturate(300%) brightness(120%);
         }
         
         .legenda { margin-top: 15px; }
@@ -75,9 +108,8 @@
     <div class="window-wrapper">
         <div id="sidebar">
             <div>
-                <h3>A* Urbino Costi</h3>
+                <h3>Centro storico di Urbino</h3>
                 <p><strong>Ispezione Grafo Attiva:</strong></p>
-                <p>Clicca su un nodo per impostare la <strong>Partenza</strong> e su un altro per l'<strong>Arrivo</strong>. L'algoritmo calcolerà il percorso esplorando i nodi intermedi.</p>
                 
                 <div class="legenda">
                     <div class="leg-item"><span class="dot" style="background:#4ade80;"></span> Partenza</div>
@@ -87,7 +119,7 @@
                     <div class="leg-item"><span class="dot" style="background:#c084fc;"></span> In Coda (Open List)</div>
                 </div>
 
-                <div class="info">
+                <div class="info" style="display: none;">
                     Distanza calcolata:<br>
                     <span id="dist-val">-</span> metri
                 </div>
@@ -110,7 +142,8 @@
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
             subdomains: 'abcd',
-            maxZoom: 20
+            maxZoom: 20,
+            className: 'blue-map-filter'
         }).addTo(map);
 
         let graphData = { nodes: {}, edges: [] };
@@ -156,6 +189,32 @@
                 graphData = data;
                 buildAdjacencyList();
                 renderGraph();
+                
+                // Maschera per oscurare tutto ciò che è fuori dalle mura
+                if (data.mura_polygon) {
+                    const worldBounds = [
+                        [90, -180],
+                        [90, 180],
+                        [-90, 180],
+                        [-90, -180]
+                    ];
+                    
+                    // Creiamo un poligono con un buco in mezzo (inverted polygon)
+                    const mask = L.polygon([worldBounds, data.mura_polygon], {
+                        color: '#8b4513', // Marrone per le mura
+                        weight: 2,
+                        fillColor: '#1e293b', // Blu scuro e desaturato (slate/navy) per la zona esterna
+                        fillOpacity: 0.75 // Leggermente più opaco per scurire l'area
+                    }).addTo(map);
+                    
+                    // Imposta i limiti della mappa (aumentato il padding per permettere di scorrere più a destra)
+                    const bounds = L.latLngBounds(data.mura_polygon);
+                    map.setMaxBounds(bounds.pad(0.8));
+                    map.options.minZoom = 15; // Evita di zoomare troppo fuori
+                    
+                    // Manda la maschera dietro ai nodi/archi ma sopra la mappa base
+                    mask.bringToBack();
+                }
             });
 
         function buildAdjacencyList() {
@@ -173,6 +232,195 @@
         }
 
         function renderGraph() {
+            // Disegna Edifici (solo quelli richiesti in marroncino)
+            if (graphData.buildings) {
+                // Aggiunta forzata per punti non mappati nativamente
+                let hasLavagine = graphData.buildings.some(b => b.name && b.name.toLowerCase().includes("porta lavagine"));
+                if (!hasLavagine) {
+                    graphData.buildings.push({
+                        name: "Porta Lavagine",
+                        type: "storico",
+                        geom_type: "point",
+                        geometry: [43.7279627, 12.6377882] // Coordinate esatte dal nodo 667377391
+                    });
+                }
+                
+                // Aggiunta Porta Santa Lucia alle coordinate del nodo richiesto
+                let hasPslNode = graphData.buildings.some(b => b.name === "Porta Santa Lucia" && Math.abs(b.geometry[0] - 43.729195) < 0.0001);
+                if (!hasPslNode) {
+                    graphData.buildings.push({
+                        name: "Porta Santa Lucia",
+                        type: "storico",
+                        geom_type: "point",
+                        geometry: [43.729195, 12.6360754] // Nodo 11237848125
+                    });
+                }
+                
+                let hasMonumento = graphData.buildings.some(b => b.name && b.name.toLowerCase().includes("monumento raffaello"));
+                if (!hasMonumento) {
+                    graphData.buildings.push({
+                        name: "Monumento Raffaello",
+                        type: "storico",
+                        geom_type: "point",
+                        geometry: [43.7284578, 12.6334113] // Nodo 5277741372
+                    });
+                }
+                
+                // Perimetri poligonali realistici
+                let hasOrto = graphData.buildings.some(b => b.name && b.name.toLowerCase().includes("orto botanico"));
+                if (!hasOrto) {
+                    graphData.buildings.push({ 
+                        name: "Orto Botanico", type: "storico", geom_type: "polygon", 
+                        geometry: [[43.727712, 12.636830], [43.727585, 12.637119], [43.727222, 12.636737], [43.727419, 12.636254], [43.727652, 12.636495]] 
+                    });
+                }
+                let hasParco = graphData.buildings.some(b => b.name && b.name.toLowerCase().includes("parco della resistenza"));
+                if (!hasParco) {
+                    graphData.buildings.push({ 
+                        name: "Parco della Resistenza", type: "storico", geom_type: "polygon", 
+                        geometry: [[43.7265, 12.6329], [43.7263, 12.6338], [43.7258, 12.6337], [43.7257, 12.6331], [43.7261, 12.6327]] 
+                    });
+                }
+                let hasPiazzale = graphData.buildings.some(b => b.name && b.name.toLowerCase().includes("piazzale roma"));
+                if (!hasPiazzale) {
+                    graphData.buildings.push({ 
+                        name: "Piazzale Roma", type: "storico", geom_type: "polygon", 
+                        geometry: [[43.7285, 12.6332], [43.7284, 12.6336], [43.7281, 12.6335], [43.7282, 12.6331]] 
+                    });
+                }
+                let hasMercatale = graphData.buildings.some(b => b.name && b.name.toLowerCase().includes("borgo mercatale"));
+                if (!hasMercatale) {
+                    graphData.buildings.push({ 
+                        name: "Borgo Mercatale", type: "storico", geom_type: "polygon", 
+                        geometry: [[43.7242, 12.6336], [43.7240, 12.6342], [43.7235, 12.6339], [43.7237, 12.6333]] 
+                    });
+                }
+                let hasSanFrancesco = graphData.buildings.some(b => b.name && b.name.toLowerCase().includes("piazza san francesco"));
+                if (!hasSanFrancesco) {
+                    graphData.buildings.push({ 
+                        name: "Piazza San Francesco", type: "storico", geom_type: "polygon", 
+                        geometry: [[43.7267, 12.6360], [43.7266, 12.6362], [43.7264, 12.6361], [43.7265, 12.6358]] 
+                    });
+                }
+
+                const targetNames = [
+                    "palazzo ducale", "teatro sanzio", "bar del teatro", 
+                    "isia", "fortezza albornoz", "monumento raffaello", 
+                    "casa raffaello", "casa natale di raffaello", 
+                    "centro commerciale", "duomo", "ghiottone", 
+                    "cinema ducale", "lavagine", "valbona", "porta santa lucia",
+                    "monastero di santa chiara"
+                ];
+                
+                const greenTargetNames = [
+                    "orto botanico", "parco della resistenza", "piazzale roma"
+                ];
+                
+                const blueTargetNames = [
+                    "repubblica", "borgo mercatale", "piazza san francesco", "piazza della repubblica"
+                ];
+                
+                // Ordiniamo in modo che le aree verdi vengano disegnate PRIMA, 
+                // poi le piazze azzurre, e infine gli edifici marroni in primo piano
+                graphData.buildings.sort((a, b) => {
+                    let aName = (a.name || "").toLowerCase();
+                    let bName = (b.name || "").toLowerCase();
+                    // Palazzo Giusti diventa Cinema Ducale anche nell'ordinamento
+                    if (a.name === "Palazzo Giusti") aName = "cinema ducale";
+                    if (b.name === "Palazzo Giusti") bName = "cinema ducale";
+                    
+                    let aIsGreen = greenTargetNames.some(t => aName.includes(t));
+                    let bIsGreen = greenTargetNames.some(t => bName.includes(t));
+                    let aIsBlue = blueTargetNames.some(t => aName.includes(t));
+                    let bIsBlue = blueTargetNames.some(t => bName.includes(t));
+                    
+                    let aScore = aIsGreen ? 0 : (aIsBlue ? 1 : 2);
+                    let bScore = bIsGreen ? 0 : (bIsBlue ? 1 : 2);
+                    
+                    return aScore - bScore;
+                });
+                
+                graphData.buildings.forEach(b => {
+                    if (!b.name) return;
+                    
+                    // Evita di evidenziare la vecchia Porta Santa Lucia errata (solo quella nuova)
+                    if (b.name === "Porta Santa Lucia" && Math.abs(b.geometry[0] - 43.729195) > 0.0001) {
+                        return;
+                    }
+                    
+                    // Ingrandisce il poligono originale di Piazza della Repubblica
+                    if (b.name === "Repubblica" && b.geom_type === "polygon") {
+                        let cLat = 0, cLng = 0;
+                        b.geometry.forEach(p => { cLat += p[0]; cLng += p[1]; });
+                        cLat /= b.geometry.length;
+                        cLng /= b.geometry.length;
+                        let scale = 5.0; // Ingrandiamo in modo molto più marcato
+                        b.geometry = b.geometry.map(p => [
+                            cLat + (p[0] - cLat) * scale,
+                            cLng + (p[1] - cLng) * scale
+                        ]);
+                        b.name = "Piazza della Repubblica";
+                    }
+                    
+                    // L'edificio al civico richiesto è accatastato come Palazzo Giusti
+                    if (b.name === "Palazzo Giusti") {
+                        b.name = "Cinema Ducale";
+                    }
+                    
+                    let bName = b.name.toLowerCase();
+                    let isTarget = targetNames.some(t => bName.includes(t));
+                    let isGreenTarget = greenTargetNames.some(t => bName.includes(t));
+                    let isBlueTarget = blueTargetNames.some(t => bName.includes(t));
+                    
+                    if (isTarget || isGreenTarget || isBlueTarget) {
+                        let strokeColor = isGreenTarget ? '#15803d' : (isBlueTarget ? '#0284c7' : '#b45309');
+                        let fillColor = isGreenTarget ? '#22c55e' : (isBlueTarget ? '#38bdf8' : '#d97706');
+                        
+                        let targetOpacity = (isGreenTarget || isBlueTarget) ? 0.4 : 1.0;
+                        
+                        // Per far sì che le tooltip degli edifici stiano sopra, possiamo forzare il bringToFront
+                        let layer;
+                        if (b.geom_type === "polygon") {
+                            layer = L.polygon(b.geometry, {
+                                color: strokeColor,
+                                weight: 2,
+                                fillColor: fillColor,
+                                fillOpacity: targetOpacity
+                            }).bindTooltip(b.name).addTo(map);
+                        } else if (b.geom_type === "point") {
+                            // Se è una delle due porte richieste, la disegniamo quadrata
+                            if (b.name === "Porta Lavagine" || b.name === "Porta Santa Lucia") {
+                                let offsetLat = 0.00008; // circa 8-10 metri
+                                let offsetLng = 0.00010;
+                                let bounds = [
+                                    [b.geometry[0] - offsetLat, b.geometry[1] - offsetLng],
+                                    [b.geometry[0] + offsetLat, b.geometry[1] + offsetLng]
+                                ];
+                                layer = L.rectangle(bounds, {
+                                    color: strokeColor,
+                                    weight: 2,
+                                    fillColor: fillColor,
+                                    fillOpacity: targetOpacity
+                                }).bindTooltip(b.name).addTo(map);
+                            } else {
+                                layer = L.circleMarker(b.geometry, {
+                                    radius: 8,
+                                    color: strokeColor,
+                                    weight: 2,
+                                    fillColor: fillColor,
+                                    fillOpacity: targetOpacity
+                                }).bindTooltip(b.name).addTo(map);
+                            }
+                        }
+                        
+                        // Sicurezza aggiuntiva per i layer SVG
+                        if (layer && isTarget && !isGreenTarget && !isBlueTarget) {
+                            layer.bringToFront();
+                        }
+                    }
+                });
+            }
+
             // Disegna Archi
             graphData.edges.forEach(edge => {
                 const p1 = graphData.nodes[edge.from];

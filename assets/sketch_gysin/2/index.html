@@ -2,34 +2,30 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>A* vs Dijkstra - Visualizer</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <title>A* Interactive Grid</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body {
       margin: 0;
       padding: 0;
-      background-color: transparent;
-      overflow: hidden;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
       align-items: flex-start;
-      min-height: auto;
+      background-color: transparent;
+      font-family: 'Inter', -apple-system, sans-serif;
+      overflow: hidden;
     }
-    #canvas-container canvas {
-      display: block;
-      width: 100% !important;
-      height: auto !important;
-      max-width: 1200px;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    }
-    #btn-play {
+    #controls {
       margin-top: 15px;
-      background: #000000;
-      color: #ffffff;
-      border: 1px solid #000000;
+      display: flex;
+      gap: 15px;
+    }
+    button {
+      background: #e5e5e5;
+      color: #404040;
+      border: 1px solid #404040;
       padding: 10px 24px;
       border-radius: 6px;
       font-family: 'Inter', -apple-system, sans-serif;
@@ -40,18 +36,44 @@
       letter-spacing: 0.5px;
       transition: all 0.15s ease;
     }
-    #btn-play:hover {
-      background: #ffffff;
-      color: #000000;
+    button:hover {
+      background: #d4d4d4;
+      color: #262626;
+      border: 1px solid #262626;
     }
-    #btn-play:active {
+    button:active {
       transform: scale(0.98);
+    }
+    #canvas-container canvas {
+      display: block;
+      width: 1000px;
+      height: 500px;
+      border: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    .instructions {
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 15px;
+      text-align: left;
     }
   </style>
 </head>
 <body>
+
+
   <div id="canvas-container"></div>
-  <button id="btn-play">Avvia</button>
+  
+  <div class="instructions" style="margin-top: 15px;">
+    <strong>Trascina A o B</strong> per spostarli. <strong>Clicca e trascina</strong> sulle celle vuote per disegnare ostacoli neri.
+  </div>
+
+  <div id="controls">
+    <button id="btn-play">Avvia Ricerca</button>
+    <button id="btn-reset">Reset Percorso</button>
+    <button id="btn-clear">Pulisci Tutto</button>
+  </div>
+
   <script src="sketch.js"></script>
 </body>
 </html>

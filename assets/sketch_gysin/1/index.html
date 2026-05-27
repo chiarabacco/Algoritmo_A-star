@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>A* Interactive Graph Component</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      background-color: transparent;
+      font-family: 'Inter', -apple-system, sans-serif;
+      overflow: hidden;
+    }
+    #canvas-container {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    #canvas-container canvas {
+      display: block;
+      width: 100% !important;
+      height: auto !important; /* Mantiene proporzioni quando si restringe */
+      border: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="canvas-container"></div>
+  
+  <script src="sketch.js"></script>
+</body>
+</html>
